@@ -2,6 +2,25 @@
  * @licence MIT
  *
  * @file: embedded_log.h
+ *
+ * @brief
+ *   Lightweight, MISRA C-compliant RAM log buffer for embedded systems.
+ *
+ *   This module provides a minimal, robust API for event and fault logging
+ *   on microcontrollers and safety-critical firmware. Logs are stored in a
+ *   circular buffer in RAM and can be inspected with a debugger or dumped
+ *   at runtime if desired.
+ *
+ *   Features:
+ *   - Ring buffer for formatted string log entries
+ *   - Levels: INFO, WARN, FAULT
+ *   - Defensive: NULL pointer safe
+ *   - One-shot logging macro (LOG_ONCE)
+ *   - No dynamic memory, no heap, no OS dependency
+ *   - Designed for integration as a Meson subproject
+ *
+ *   Typical use case: debugging or post-mortem analysis in systems without
+ *   printf/serial output.
  */
 #ifndef EMBEDDED_LOG_H
 #define EMBEDDED_LOG_H
