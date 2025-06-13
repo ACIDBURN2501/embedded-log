@@ -68,3 +68,6 @@ Unit tests use Unity (included as a subproject):
 meson test -C builddir --print-errorlogs
 ```
 
+The option `--Dbuild_tests=false` can be included when setting up the build to
+prevent the building of unit tests.
+
