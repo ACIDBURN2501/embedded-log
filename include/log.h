@@ -111,7 +111,7 @@ const struct log_entry *log_get_entry(uint16_t idx);
  */
 #define LOG_ONCE(level, fmt, ...)                                              \
         do {                                                                   \
-                static uint8_t _logged = 0;                                    \
+                static uint16_t _logged = 0;                                   \
                 if (!_logged) {                                                \
                         log_event(level, fmt, ##__VA_ARGS__);                  \
                         _logged = 1;                                           \
