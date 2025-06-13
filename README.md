@@ -30,7 +30,7 @@ microcontrollers, with no dynamic memory or OS dependencies.
 #include "log.h"
 ```
 
-# Example Usage
+## Example Usage
 ```c
 // During early init:
 log_init(my_timestamp_function);
@@ -56,6 +56,9 @@ This project uses Meson for building and dependency management.
 meson setup builddir
 meson compile -C builddir
 ```
+
+You can include the options `--buildtype=debug` or `--buildtype=release` as
+required.
 
 
 ## Running Unit Tests with Meson
