@@ -49,8 +49,7 @@ void foo(void) {
 }
 ```
 
-# Building the Project with Meson
-
+## Building the Project with Meson
 This project uses Meson for building and dependency management.
 
 ```c
@@ -59,7 +58,7 @@ meson compile -C builddir
 ```
 
 
-# Running Unit Tests with Meson
+## Running Unit Tests with Meson
 Unit tests use Unity (included as a subproject):
 
 ```c
