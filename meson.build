@@ -22,5 +22,6 @@ embedded_log_dep = declare_dependency(
   link_with: embedded_log_lib
 )
 
-subdir('test')
-
+if get_option('build_tests')
+  subdir('test')
+endif
