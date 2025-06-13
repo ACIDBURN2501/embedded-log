@@ -1,5 +1,6 @@
 
 # Log Module for Embedded Systems
+[![Run Unity Tests](https://github.com/ACIDBURN2501/embedded-log/actions/workflows/test.yml/badge.svg)](https://github.com/ACIDBURN2501/embedded-log/actions/workflows/test.yml)
 
 This module provides lightweight, robust logging suitable for embedded systems
 without traditional stdout, UART, or file-based logging interfaces.
