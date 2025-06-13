@@ -1,9 +1,5 @@
 /*
- * @copyright
- *    Copyright (C) 2023-2025 Magnus Marine. All rights reserved.
- *
- *    Redistribution and use in source and binary forms, with or without
- *    modification, is not permitted.
+ * @licence MIT
  *
  * @file: embedded_log.h
  */
