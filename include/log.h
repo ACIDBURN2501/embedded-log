@@ -87,6 +87,19 @@ uint16_t log_get_count(void);
 const struct log_entry *log_get_entry(uint16_t idx);
 
 /**
+ * @brief Returns a pointer to the internal log buffer and its capacity.
+ *
+ * @param[out] count  If non-NULL, receives the number of valid log entries.
+ *
+ * @note
+ *    The returned buffer is always of size `LOG_ENTRIES`, but only the first
+ *    `log_count` are valid.
+ *
+ * @return            Pointer to log buffer array (struct log_entry *).
+ */
+const struct log_entry *log_get_buffer(uint16_t *count);
+
+/**
  * @def LOG_ONCE
  * @brief Log a message at most once per code location per reset.
  *

@@ -66,3 +66,13 @@ log_get_entry(uint16_t idx)
 
         return &log_buffer[phys_idx];
 }
+
+const struct log_entry *
+log_get_buffer(uint16_t *count)
+{
+        if (count != NULL) {
+                *count = log_count;
+        }
+
+        return log_buffer;
+}
