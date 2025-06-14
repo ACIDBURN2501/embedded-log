@@ -187,6 +187,50 @@ test_log_init_null_fn(void)
         TEST_ASSERT_EQUAL_UINT16(0, log_get_count());
 }
 
+void
+test_log_get_buffer_returns_correct_count_and_pointer(void)
+{
+        log_init(fake_timestamp);
+
+        // Initially empty
+        uint16_t count = 12345; // sentinel
+        const struct log_entry *buf = log_get_buffer(&count);
+
+        TEST_ASSERT_NOT_NULL(buf);
+        TEST_ASSERT_EQUAL_UINT16(0, count);
+
+        // Add a few entries
+        log_event(INFO, "System start");
+        log_event(FAULT, "Fault detected");
+
+        count = 0;
+        buf = log_get_buffer(&count);
+
+        TEST_ASSERT_EQUAL_UINT16(2, count);
+        TEST_ASSERT_EQUAL_STRING("System start", buf[0].msg);
+        TEST_ASSERT_EQUAL_STRING("Fault detected", buf[1].msg);
+
+        // Make sure direct buffer access matches log_get_entry()
+        const struct log_entry *e0 = log_get_entry(0);
+        const struct log_entry *e1 = log_get_entry(1);
+        TEST_ASSERT_EQUAL_STRING(e0->msg, buf[0].msg);
+        TEST_ASSERT_EQUAL_STRING(e1->msg, buf[1].msg);
+}
+
+void
+test_log_get_buffer_null_count_ptr(void)
+{
+        log_init(fake_timestamp);
+        log_event(WARN, "Hello world");
+
+        // Passing NULL for count should not crash and still return pointer
+        const struct log_entry *buf = log_get_buffer(NULL);
+
+        TEST_ASSERT_NOT_NULL(buf);
+        // buf[0] should have the only entry
+        TEST_ASSERT_EQUAL_STRING("Hello world", buf[0].msg);
+}
+
 /* Main test runner */
 int
 main(void)
@@ -200,5 +244,7 @@ main(void)
         RUN_TEST(test_log_once_reset_context);
         RUN_TEST(test_log_event_null_fmt);
         RUN_TEST(test_log_init_null_fn);
+        RUN_TEST(test_log_get_buffer_returns_correct_count_and_pointer);
+        RUN_TEST(test_log_get_buffer_null_count_ptr);
         return UNITY_END();
 }
