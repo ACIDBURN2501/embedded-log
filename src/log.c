@@ -11,8 +11,8 @@ log_init(struct log_ctx *ctx, uint32_t (*timestamp_fn)(void))
         if (ctx == NULL) {
                 return;
         }
-        ctx->head = 0U;
-        ctx->count = 0U;
+        ctx->head = 0u;
+        ctx->count = 0u;
         ctx->timestamp_fn = timestamp_fn;
         (void)memset((void *)ctx->buffer, 0, sizeof(ctx->buffer));
 }
@@ -35,7 +35,7 @@ log_event(struct log_ctx *ctx, enum log_level level, const char *fmt, ...)
 
         ctx->head++;
         if (ctx->head >= LOG_ENTRIES) {
-                ctx->head = 0U;
+                ctx->head = 0u;
         }
         if (ctx->count < LOG_ENTRIES) {
                 ctx->count++;
@@ -46,7 +46,7 @@ uint16_t
 log_get_count(const struct log_ctx *ctx)
 {
         if (ctx == NULL) {
-                return 0U;
+                return 0u;
         }
         return ctx->count;
 }
@@ -68,7 +68,7 @@ log_get_buffer(const struct log_ctx *ctx, uint16_t *count)
 {
         if (ctx == NULL) {
                 if (count != NULL) {
-                        *count = 0U;
+                        *count = 0u;
                 }
                 return NULL;
         }

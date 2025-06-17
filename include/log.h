@@ -64,16 +64,16 @@
  * @{
  */
 
-#define LOG_MSG_LEN (48U)
-#define LOG_ENTRIES (50U)
+#define LOG_MSG_LEN (48u)
+#define LOG_ENTRIES (50u)
 
 /**
  * @brief Log level enum.
  */
 enum log_level {
-        INFO = 0U,
-        WARN = 1U,
-        FAULT = 2U
+        INFO = 0u,
+        WARN = 1u,
+        FAULT = 2u
 };
 
 /**
@@ -167,10 +167,10 @@ const struct log_entry *log_get_buffer(const struct log_ctx *ctx,
  */
 #define LOG_ONCE(ctx, level, fmt, ...)                                         \
         do {                                                                   \
-                static uint8_t _logged = 0U;                                   \
-                if (_logged == 0U) {                                           \
+                static uint8_t _logged = 0u;                                   \
+                if (_logged == 0u) {                                           \
                         log_event(ctx, level, fmt, ##__VA_ARGS__);             \
-                        _logged = 1U;                                          \
+                        _logged = 1u;                                          \
                 }                                                              \
         } while (0)
 
