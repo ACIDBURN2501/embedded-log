@@ -1,9 +1,8 @@
-#include <string.h>
-
-#include "log.h"
-#include "unity.h"
-#include "unity_internals.h"
 #include <stdint.h>
+
+#include "../subprojects/unity/src/unity.h"
+
+#include "../include/log.h"
 
 static uint32_t fake_time = 0;
 
@@ -22,81 +21,79 @@ tearDown(void)
 {
 }
 
-/* Test: log_init and log_event basic operation */
 void
 test_log_init_and_event(void)
 {
-        log_init(fake_timestamp);
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
 
-        log_event(INFO, "Boot %d", 42);
+        log_event(&ctx, INFO, "Boot %d", 42);
         fake_time += 5;
-        log_event(FAULT, "Overtemp!");
+        log_event(&ctx, FAULT, "Overtemp!");
         fake_time += 5;
-        log_event(WARN, "Retrying...");
+        log_event(&ctx, WARN, "Retrying...");
 
-        TEST_ASSERT_EQUAL_UINT16(3, log_get_count());
+        TEST_ASSERT_EQUAL_UINT16(3, log_get_count(&ctx));
 
-        const struct log_entry *e0 = log_get_entry(0);
+        const struct log_entry *e0 = log_get_entry(&ctx, 0);
         TEST_ASSERT_NOT_NULL(e0);
         TEST_ASSERT_EQUAL_UINT32(0, e0->timestamp);
         TEST_ASSERT_EQUAL_UINT16(INFO, e0->level);
         TEST_ASSERT_EQUAL_STRING("Boot 42", e0->msg);
 
-        const struct log_entry *e1 = log_get_entry(1);
+        const struct log_entry *e1 = log_get_entry(&ctx, 1);
         TEST_ASSERT_NOT_NULL(e1);
         TEST_ASSERT_EQUAL_UINT32(5, e1->timestamp);
         TEST_ASSERT_EQUAL_UINT16(FAULT, e1->level);
         TEST_ASSERT_EQUAL_STRING("Overtemp!", e1->msg);
 
-        const struct log_entry *e2 = log_get_entry(2);
+        const struct log_entry *e2 = log_get_entry(&ctx, 2);
         TEST_ASSERT_NOT_NULL(e2);
         TEST_ASSERT_EQUAL_UINT32(10, e2->timestamp);
         TEST_ASSERT_EQUAL_UINT16(WARN, e2->level);
         TEST_ASSERT_EQUAL_STRING("Retrying...", e2->msg);
 }
 
-/* Test: LOG_ONCE macro only logs one entry per invocation context */
 void
 test_log_once_macro(void)
 {
-        log_init(fake_timestamp);
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
 
         for (int i = 0; i < 10; ++i) {
-                LOG_ONCE(WARN, "Logged only once");
+                LOG_ONCE(&ctx, WARN, "Logged only once");
         }
-        TEST_ASSERT_EQUAL_UINT16(1, log_get_count());
-        const struct log_entry *e0 = log_get_entry(0);
+        TEST_ASSERT_EQUAL_UINT16(1, log_get_count(&ctx));
+        const struct log_entry *e0 = log_get_entry(&ctx, 0);
         TEST_ASSERT_EQUAL_STRING("Logged only once", e0->msg);
 }
 
-/* Test: log_get_entry out-of-bounds returns NULL */
 void
 test_log_get_entry_oob(void)
 {
-        log_init(fake_timestamp);
-        log_event(INFO, "test");
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
+        log_event(&ctx, INFO, "test");
         TEST_ASSERT_NULL(
-            log_get_entry(2)); /* Only 1 entry, so index 2 invalid */
-        TEST_ASSERT_NULL(log_get_entry(100)); /* Large invalid index */
+            log_get_entry(&ctx, 2)); // Only 1 entry, so index 2 invalid
+        TEST_ASSERT_NULL(log_get_entry(&ctx, 100)); // Large invalid index
 }
 
-/* Test: Buffer wraparound when more than LOG_ENTRIES events are logged */
 void
 test_log_buffer_wraparound(void)
 {
-        log_init(fake_timestamp);
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
 
-        /* Fill buffer completely and overflow */
-        const uint16_t N = LOG_ENTRIES + 5; /* 5 entries over capacity */
+        const uint16_t N = LOG_ENTRIES + 5;
         for (uint16_t i = 0; i < N; ++i) {
-                log_event(INFO, "Entry %u", i);
+                log_event(&ctx, INFO, "Entry %u", i);
                 fake_time += 1;
         }
-        /* Should only retain last LOG_ENTRIES entries */
-        TEST_ASSERT_EQUAL_UINT16(LOG_ENTRIES, log_get_count());
+        TEST_ASSERT_EQUAL_UINT16(LOG_ENTRIES, log_get_count(&ctx));
 
-        /* The oldest retained entry should be N - LOG_ENTRIES */
-        const struct log_entry *oldest = log_get_entry(0);
+        // The oldest retained entry should be N - LOG_ENTRIES
+        const struct log_entry *oldest = log_get_entry(&ctx, 0);
         TEST_ASSERT_NOT_NULL(oldest);
 
         char expected_msg[32];
@@ -104,115 +101,102 @@ test_log_buffer_wraparound(void)
                  N - LOG_ENTRIES);
         TEST_ASSERT_EQUAL_STRING(expected_msg, oldest->msg);
 
-        /* The newest retained entry should be N-1 */
-        const struct log_entry *newest = log_get_entry(LOG_ENTRIES - 1);
+        // The newest retained entry should be N-1
+        const struct log_entry *newest = log_get_entry(&ctx, LOG_ENTRIES - 1);
         snprintf(expected_msg, sizeof(expected_msg), "Entry %u", N - 1);
         TEST_ASSERT_EQUAL_STRING(expected_msg, newest->msg);
 }
 
-/* Test: Correct timestamp and level for wraparound */
 void
 test_log_buffer_wraparound_timestamps(void)
 {
-        log_init(fake_timestamp);
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
         uint32_t start_time = 1000;
         fake_time = start_time;
         const uint16_t N = LOG_ENTRIES + 2;
 
         for (uint16_t i = 0; i < N; ++i) {
-                log_event(FAULT, "Overrun %u", i);
+                log_event(&ctx, FAULT, "Overrun %u", i);
                 fake_time += 10;
         }
-        /* Check the first (oldest) retained entry */
-        const struct log_entry *first = log_get_entry(0);
+        const struct log_entry *first = log_get_entry(&ctx, 0);
         TEST_ASSERT_NOT_NULL(first);
         TEST_ASSERT_EQUAL_UINT16(FAULT, first->level);
-        TEST_ASSERT_EQUAL_UINT32(
-            start_time + 20,
-            first->timestamp); /* N - LOG_ENTRIES = 2, so +2*10 */
+        TEST_ASSERT_EQUAL_UINT32(start_time + 20, first->timestamp);
 
-        /* Check the last (newest) */
-        const struct log_entry *last = log_get_entry(LOG_ENTRIES - 1);
+        const struct log_entry *last = log_get_entry(&ctx, LOG_ENTRIES - 1);
         TEST_ASSERT_NOT_NULL(last);
         TEST_ASSERT_EQUAL_UINT32(start_time + 10 * (N - 1), last->timestamp);
 }
 
-/*
- * Simulate context: Call a function, reset context by calling another
- */
-void
-my_state(void)
-{
-        LOG_ONCE(INFO, "Entered state");
-}
-
-/* Test: LOG_ONCE resets if function's static context is reset */
 void
 test_log_once_reset_context(void)
 {
-        log_init(fake_timestamp);
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
 
-        /* First entry (should log) */
-        my_state();
-        TEST_ASSERT_EQUAL_UINT16(1, log_get_count());
+        void my_state(struct log_ctx * c)
+        {
+                LOG_ONCE(c, INFO, "Entered state");
+        }
 
-        /* Second call (should not log) */
-        my_state();
-        TEST_ASSERT_EQUAL_UINT16(1, log_get_count());
+        // First entry (should log)
+        my_state(&ctx);
+        TEST_ASSERT_EQUAL_UINT16(1, log_get_count(&ctx));
 
-        /*
-         * Simulate static variable reset by "function reload"
-         * For actual embedded code, this happens on function exit if variable
-         * is not truly static. Here, forcibly reset by resetting static var
-         * (simulate reset or another state entry) But in this simple case,
-         * LOG_ONCE is only truly reset across a full program restart.
-         */
+        // Second call (should not log)
+        my_state(&ctx);
+        TEST_ASSERT_EQUAL_UINT16(1, log_get_count(&ctx));
 }
 
 void
 test_log_event_null_fmt(void)
 {
-        log_init(fake_timestamp);
-        /* Should not crash or log */
-        log_event(INFO, NULL);
-        TEST_ASSERT_EQUAL_UINT16(0, log_get_count());
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
+        // Should not crash, should not log
+        log_event(&ctx, INFO, NULL);
+        TEST_ASSERT_EQUAL_UINT16(0, log_get_count(&ctx));
 }
 
 void
 test_log_init_null_fn(void)
 {
-        /* Should not crash, and should not allow logging */
-        log_init(NULL);
-        log_event(INFO, "should not log");
-        TEST_ASSERT_EQUAL_UINT16(0, log_get_count());
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
+        log_event(&ctx, INFO, "should log");
+        TEST_ASSERT_EQUAL_UINT16(1, log_get_count(&ctx));
+
+        log_init(&ctx, NULL);
+        log_event(&ctx, INFO, "should not log");
+        TEST_ASSERT_EQUAL_UINT16(0, log_get_count(&ctx));
 }
 
 void
 test_log_get_buffer_returns_correct_count_and_pointer(void)
 {
-        log_init(fake_timestamp);
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
 
-        // Initially empty
         uint16_t count = 12345; // sentinel
-        const struct log_entry *buf = log_get_buffer(&count);
+        const struct log_entry *buf = log_get_buffer(&ctx, &count);
 
         TEST_ASSERT_NOT_NULL(buf);
         TEST_ASSERT_EQUAL_UINT16(0, count);
 
-        // Add a few entries
-        log_event(INFO, "System start");
-        log_event(FAULT, "Fault detected");
+        log_event(&ctx, INFO, "System start");
+        log_event(&ctx, FAULT, "Fault detected");
 
         count = 0;
-        buf = log_get_buffer(&count);
+        buf = log_get_buffer(&ctx, &count);
 
         TEST_ASSERT_EQUAL_UINT16(2, count);
         TEST_ASSERT_EQUAL_STRING("System start", buf[0].msg);
         TEST_ASSERT_EQUAL_STRING("Fault detected", buf[1].msg);
 
-        // Make sure direct buffer access matches log_get_entry()
-        const struct log_entry *e0 = log_get_entry(0);
-        const struct log_entry *e1 = log_get_entry(1);
+        const struct log_entry *e0 = log_get_entry(&ctx, 0);
+        const struct log_entry *e1 = log_get_entry(&ctx, 1);
         TEST_ASSERT_EQUAL_STRING(e0->msg, buf[0].msg);
         TEST_ASSERT_EQUAL_STRING(e1->msg, buf[1].msg);
 }
@@ -220,18 +204,16 @@ test_log_get_buffer_returns_correct_count_and_pointer(void)
 void
 test_log_get_buffer_null_count_ptr(void)
 {
-        log_init(fake_timestamp);
-        log_event(WARN, "Hello world");
+        struct log_ctx ctx;
+        log_init(&ctx, fake_timestamp);
+        log_event(&ctx, WARN, "Hello world");
 
-        // Passing NULL for count should not crash and still return pointer
-        const struct log_entry *buf = log_get_buffer(NULL);
+        const struct log_entry *buf = log_get_buffer(&ctx, NULL);
 
         TEST_ASSERT_NOT_NULL(buf);
-        // buf[0] should have the only entry
         TEST_ASSERT_EQUAL_STRING("Hello world", buf[0].msg);
 }
 
-/* Main test runner */
 int
 main(void)
 {
