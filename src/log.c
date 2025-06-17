@@ -34,6 +34,9 @@ log_event(enum log_level level, const char *fmt, ...)
         (void)vsnprintf(entry->msg, (size_t)LOG_MSG_LEN, fmt, args);
         va_end(args);
 
+        /* overwrite last byte with null terminator */
+        entry->msg[LOG_MSG_LEN - 1] = '\0';
+
         log_head++;
         if (log_head >= LOG_ENTRIES) {
                 log_head = 0U;

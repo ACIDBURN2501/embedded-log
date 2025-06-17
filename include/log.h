@@ -35,7 +35,7 @@
  */
 
 #define LOG_MSG_LEN (48u)
-#define LOG_ENTRIES (128u)
+#define LOG_ENTRIES (50u)
 
 /**
  * @brief Log level enum.
