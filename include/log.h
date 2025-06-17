@@ -56,7 +56,7 @@
  *           printf("[%lu] : %s : %s\n",
  *               (unsigned long)e->timestamp,
  *               (e->level == INFO) ? "INFO" : (e->level == WARN) ? "WARN" :
- * "FAULT", e->msg);
+ *                                    "FAULT", e->msg);
  *       }
  *   }
  *   @endcode
