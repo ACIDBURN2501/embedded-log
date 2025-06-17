@@ -29,6 +29,38 @@
  *   - No dynamic memory, no heap, no OS dependency
  *   - Designed for integration as a Meson subproject
  *
+ *   **Example Usage:**
+ *   @code
+ *   #include "log.h"
+ *
+ *   // User supplies a context (buffer, counters)
+ *   static struct log_ctx my_log;
+ *
+ *   uint32_t my_get_ticks(void) {
+ *       // Return timestamp in your preferred units
+ *       return timer_ticks;
+ *   }
+ *
+ *   void app_init(void) {
+ *       log_init(&my_log, my_get_ticks);
+ *   }
+ *
+ *   void some_function(void) {
+ *       log_event(&my_log, INFO, "System started, mode=%u", mode);
+ *       LOG_ONCE(&my_log, WARN, "First call to some_function()");
+ *   }
+ *
+ *   void print_log(void) {
+ *       for (uint16_t i = 0; i < log_get_count(&my_log); ++i) {
+ *           const struct log_entry *e = log_get_entry(&my_log, i);
+ *           printf("[%lu] : %s : %s\n",
+ *               (unsigned long)e->timestamp,
+ *               (e->level == INFO) ? "INFO" : (e->level == WARN) ? "WARN" :
+ * "FAULT", e->msg);
+ *       }
+ *   }
+ *   @endcode
+ *
  * @{
  */
 
