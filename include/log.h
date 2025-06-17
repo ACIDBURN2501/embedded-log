@@ -1,7 +1,17 @@
 /*
  * @licence MIT
  *
- * @file: embedded_log.h
+ * @file: log.h
+ */
+
+#ifndef LOG_H
+#define LOG_H
+
+#include <stdarg.h>
+#include <stdint.h>
+
+/**
+ * @defgroup log_api Embedded Logging Facility
  *
  * @brief
  *   Lightweight, MISRA C-compliant RAM log buffer for embedded systems.
@@ -12,38 +22,26 @@
  *   at runtime if desired.
  *
  *   Features:
- *   - Ring buffer for formatted string log entries
+ *   - User-supplied context for flexible instancing
  *   - Levels: INFO, WARN, FAULT
- *   - Defensive: NULL pointer safe
  *   - One-shot logging macro (LOG_ONCE)
+ *   - Defensive: NULL pointer safe
  *   - No dynamic memory, no heap, no OS dependency
  *   - Designed for integration as a Meson subproject
- *
- *   Typical use case: debugging or post-mortem analysis in systems without
- *   printf/serial output.
- */
-#ifndef EMBEDDED_LOG_H
-#define EMBEDDED_LOG_H
-
-#include <stdint.h>
-
-/**
- * @defgroup embedded_log_api Embedded Logging Facility
- * @brief Circular in-RAM log buffer for event and fault logging.
  *
  * @{
  */
 
-#define LOG_MSG_LEN (48u)
-#define LOG_ENTRIES (50u)
+#define LOG_MSG_LEN (48U)
+#define LOG_ENTRIES (50U)
 
 /**
  * @brief Log level enum.
  */
 enum log_level {
-        INFO = 0,
-        WARN = 1,
-        FAULT = 2
+        INFO = 0U,
+        WARN = 1U,
+        FAULT = 2U
 };
 
 /**
@@ -56,84 +54,97 @@ struct log_entry {
 };
 
 /**
- * @brief Initialize the log system.
- *
- * @param timestamp_fn  Pointer to function returning milliseconds.
+ * @brief Log context, holding buffer and state.
  */
-void log_init(uint32_t (*timestamp_fn)(void));
+struct log_ctx {
+        struct log_entry buffer[LOG_ENTRIES];
+        uint16_t head;
+        uint16_t count;
+        uint32_t (*timestamp_fn)(void);
+};
 
 /**
- * @brief Add an event to the log.
+ * @brief Initialize the log context.
  *
- * @param level     Log level (info, warn, fault).
+ * @param ctx           Pointer to user-supplied log context.
+ * @param timestamp_fn  Pointer to user-supplied timestamp function.
+ */
+void log_init(struct log_ctx *ctx, uint32_t (*timestamp_fn)(void));
+
+/**
+ * @brief Add a log entry.
+ *
+ * @param ctx       Pointer to log context.
+ * @param level     Log level (INFO, WARN, FAULT).
  * @param fmt       printf-style format string.
  * @param ...       Arguments for format string.
+ *
+ * @note            Automatically appends a NULL terminating character.
  */
-void log_event(enum log_level level, const char *fmt, ...);
+void log_event(struct log_ctx *ctx, enum log_level level, const char *fmt, ...);
 
 /**
- * @brief Get the number of valid entries in the log.
+ * @brief Get the number of valid log entries in the buffer.
  *
- * @return          Count of entries.
+ * @param ctx       Pointer to log context.
+ *
+ * @return          Number of valid log entries.
  */
-uint16_t log_get_count(void);
+uint16_t log_get_count(const struct log_ctx *ctx);
 
 /**
- * @brief Get a pointer to the idx-th oldest log entry.
+ * @brief Get the idx-th oldest log entry.
  *
- * @param idx       Entry index (0 = oldest).
- * @return          Pointer to log_entry, or NULL if out of bounds.
+ * @param ctx       Pointer to log context.
+ * @param idx       Index (0 = oldest).
+ *
+ * @return          Pointer to log entry, or NULL if out of bounds.
  */
-const struct log_entry *log_get_entry(uint16_t idx);
+const struct log_entry *log_get_entry(const struct log_ctx *ctx, uint16_t idx);
 
 /**
- * @brief Returns a pointer to the internal log buffer and its capacity.
+ * @brief Return pointer to log buffer for direct inspection.
  *
- * @param[out] count  If non-NULL, receives the number of valid log entries.
+ * @param ctx       Pointer to log context.
+ * @param count     If non-NULL, writes number of valid entries.
  *
- * @note
- *    The returned buffer is always of size `LOG_ENTRIES`, but only the first
- *    `log_count` are valid.
- *
- * @return            Pointer to log buffer array (struct log_entry *).
+ * @return          Pointer to log_entry array.
  */
-const struct log_entry *log_get_buffer(uint16_t *count);
+const struct log_entry *log_get_buffer(const struct log_ctx *ctx,
+                                       uint16_t *count);
 
 /**
  * @def LOG_ONCE
  * @brief Log a message at most once per code location per reset.
  *
  * This macro ensures that a log statement is only recorded once for the
- * lifetime of the program or until the enclosing function is re-entered with a
- * reset static context. It is useful for suppressing repeated logs from within
- * frequently called code paths, such as state machine tick functions.
+ * lifetime of the program or until the enclosing function's static variable
+ * context is reset.
  *
  * Example usage:
  * @code
- * void state_run(void)
- * {
- *     LOG_ONCE(WARN, "Waiting for module ready...");
- *     // ... rest of state logic ...
- *     // To re-enable the log, reset the function's static context as needed.
+ * void state_run(struct log_ctx *ctx) {
+ *     LOG_ONCE(ctx, WARN, "Waiting for module ready...");
  * }
  * @endcode
  *
- * @param level     Log level (enum log_level).
+ * @param ctx       Pointer to log context.
+ * @param level     Log level.
  * @param fmt       printf-style format string.
  * @param ...       Arguments for format string.
  */
-#define LOG_ONCE(level, fmt, ...)                                              \
+#define LOG_ONCE(ctx, level, fmt, ...)                                         \
         do {                                                                   \
-                static uint16_t _logged = 0;                                   \
-                if (!_logged) {                                                \
-                        log_event(level, fmt, ##__VA_ARGS__);                  \
-                        _logged = 1;                                           \
+                static uint8_t _logged = 0U;                                   \
+                if (_logged == 0U) {                                           \
+                        log_event(ctx, level, fmt, ##__VA_ARGS__);             \
+                        _logged = 1U;                                          \
                 }                                                              \
         } while (0)
 
 /**
- * Close group: embedded_log_api
+ * Close group: log_api
  * @}
  */
 
-#endif /* EMBEDDED_LOG_H */
+#endif /* LOG_H */
